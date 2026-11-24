@@ -1,0 +1,191 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bảng theo dõi cộng trừ</title>
+  <style>
+    :root {
+      --line: #222;
+      --header: #e8edf3;
+      --plus: #eaf3e4;
+      --minus: #f5dddd;
+      --empty: #eeeeee;
+      --text: #202124;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; padding: 28px;
+      font-family: Arial, Helvetica, sans-serif;
+      color: var(--text); background: #f5f6f8;
+    }
+    .container { max-width: 1100px; margin: auto; }
+    h1 { margin: 0 0 8px; font-size: 24px; }
+    .note { color: #5f6368; margin: 0 0 18px; font-size: 14px; }
+    .toolbar {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      align-items: center; justify-content: space-between; margin-bottom: 12px;
+    }
+    input[type="search"] {
+      min-width: 220px; padding: 10px 12px; border: 1px solid #c7cbd1;
+      border-radius: 8px; font-size: 14px;
+    }
+    .table-wrap {
+      overflow: auto; background: white; border: 1px solid #c8cdd3;
+      border-radius: 10px; box-shadow: 0 2px 8px #0000000a;
+    }
+    table { border-collapse: collapse; width: 100%; min-width: 650px; }
+    th, td { border: 1px solid var(--line); padding: 8px 10px; }
+    th { background: var(--header); text-align: center; position: sticky; top: 0; z-index: 1; }
+    td.stt { width: 58px; text-align: center; }
+    td.name { min-width: 250px; }
+    td.score { text-align: center; min-width: 85px; font-variant-numeric: tabular-nums; }
+    td.plus { background: var(--plus); color: #16803b; font-weight: 600; }
+    td.minus { background: var(--minus); color: #bd2424; font-weight: 600; }
+    td.empty { background: var(--empty); }
+    tr.unlisted td { background: #d2d2d2; }
+    .footer { margin-top: 10px; color: #60656d; font-size: 13px; }
+    @media print {
+      body { padding: 0; background: white; }
+      .toolbar, .note { display: none; }
+      .table-wrap { border: 0; box-shadow: none; overflow: visible; }
+      th { position: static; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <h1>Bảng theo dõi cộng trừ</h1>
+    <p class="note"></p>
+    <div class="toolbar">
+      <input id="search" type="search" placeholder="Tìm theo số thứ tự hoặc họ tên...">
+      <span id="count"></span>
+    </div>
+    <div class="table-wrap">
+      <table id="scoreTable">
+        <thead><tr id="tableHead"></tr></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+    <p class="footer">Nguyễn Thành Tâm 11D2</p>
+  </main>
+
+  <script>
+   
+    const COLUMNS = [
+      { key: "stt", label: "STT", type: "stt" },
+      { key: "name", label: "Họ tên", type: "name" },
+      { key: "cong", label: "Cộng", type: "number", className: "plus" },
+      { key: "tru", label: "Trừ", type: "number", className: "minus" },
+      { key: "kiemtra", label: "TX", type: "number" },
+      { key: "vo", label:"vở", type:"number"}
+    ];
+    const STUDENTS = [
+      { stt: 1, name: "Đỗ Vân Anh", scores: { cong: 1, tru: null } },
+      { stt: 2, name: "Hàn Thị Minh Anh", scores: { cong: 3, tru: null } },
+      { stt: 3, name: "Hồ Văn Hoàng Anh", scores: { cong: 1, tru: null } },
+      
+      { stt: 4, name: "Vũ Văn Bắc", scores: { cong: 1, tru: null } },
+      { stt: 5, name: "Đặng Hồng Lan Chi", scores: { cong: 1, tru: null,kiemtra:7 } },
+      { stt: 6, name: "Mai Thanh Dễ", scores: { cong: 3, tru: null } },
+      { stt: 7, name: "Nguyễn Thị Thùy Diệu", scores: { cong: 4.5, tru: null } },
+      { stt: 8, name: "Nguyễn Phan Minh Đức", scores: { cong: null, tru: null } },
+      { stt: 9, name: "Lê Ngọc Hân", scores: { cong: 3, tru: null } },
+      { stt: 10, name: "Trần Ngọc Hân", scores: { cong: 1, tru: null } },
+      { stt: 11, name: "Thiều Nguyễn Hồng Hội", scores: { cong: 1, tru: null } },
+      { stt: 12, name: "Vương Phi Hùng", scores: { cong: 1, tru: null } },
+      { stt: 13, name: "Lê Nguyễn Gia Huy", scores: { cong: null, tru: null } },
+      { stt: 14, name: "Nguyễn Nhật Huy", scores: { cong: 1, tru: null } },
+      { stt: 15, name: "Hà Đình Khoa", scores: { cong: 2, tru: -1 } },
+      { stt: 16, name: "Dương Ngọc Linh", scores: { cong: 1, tru: null } },
+      { stt: 17, name: "Vũ Thị Khánh Linh", scores: { cong: 2, tru: null } },
+      { stt: 18, name: "Trần Sơn Nam", scores: { cong: null, tru: null } },
+      { stt: 19, name: "Nguyễn Hoàng Thúy Ngân", scores: { cong: 2, tru: null } },
+      { stt: 20, name: "Nguyễn Hoàng Bảo Ngọc", scores: { cong: 1, tru: null } },
+      { stt: 21, name: "Trần Bảo Nguyên", scores: { cong: 2, tru: null } },
+      { stt: 22, name: "Trần Nguyễn Anh Nguyên", scores: { cong: null, tru: null } },
+      { stt: 23, name: "Lê Thành Nhân", scores: { cong: 1, tru: -1 } },
+      { stt: 24, name: "Huỳnh Xuân Nhi", scores: { cong: null, tru: null } },
+      { stt: 25, name: "Phan Nguyễn Tuệ Nhi", scores: { cong: 1, tru: null } },
+      { stt: 26, name: "Bá Lê Oanh", scores: { cong: 1, tru: null } },
+      { stt: 27, name: "Nguyễn Minh Phương", scores: { cong: null, tru: null } },
+      { stt: 28, name: "Lưu An Quý", scores: { cong: null, tru: -1 } },
+      { stt: 29, name: "Trịnh Hạnh San", scores: { cong: null, tru: null } },
+      { stt: 30, name: "Neang Kim Sơn", scores: { cong: 2.5, tru: null } },
+      { stt: 31, name: "Võ Thái Sơn", scores: { cong: 1, tru: null } },
+      { stt: 32, name: "Lê Chí Tâm", scores: { cong: null, tru: null } },
+      { stt: 33, name: "Nguyễn Thành Tâm", scores: { cong: null, tru: null,vo:8 } },
+      { stt: 34, name: "Lê Thị Thu Thảo", scores: { cong: null, tru: null } },
+      { stt: 35, name: "Nguyễn Minh Thanh Thảo", scores: { cong: 1, tru: null } },
+      { stt: 36, name: "Trần Thanh Thảo", scores: { cong: 2, tru: null } },
+      { stt: 37, name: "Lê Thị Thanh Thùy", scores: { cong: 3, tru: null } },
+      { stt: 38, name: "Phạm Ngọc Thủy", scores: { cong: 2, tru: null } },
+      { stt: 39, name: "Trần Hoàng Tiên", scores: { cong: 2, tru: null } },
+      { stt: 40, name: "Nguyễn Ngọc Huỳnh Trâm", scores: { cong: 2, tru: null } },
+      { stt: 41, name: "Lại Minh Trí", scores: { cong: null, tru: null } },
+      { stt: 42, name: "Nguyễn Thành Trọng", scores: { cong: null, tru: null } },
+      { stt: 43, name: "Lưu Nhựt Trường", scores: { cong: 1, tru: null } },
+      { stt: 44, name: "Trần Minh Tú", scores: { cong: null, tru: null } },
+      { stt: 45, name: "Hoàng Ngọc Tùng", scores: { cong: null, tru: null } },
+      { stt: 46, name: "Ngô Mỹ Vân", scores: { cong: 5.5, tru: null } },
+      { stt: 47, name: "Bùi Tuấn Vũ", scores: { cong: 1, tru: null } }
+    ];
+
+    const head = document.getElementById("tableHead");
+    const body = document.getElementById("tableBody");
+    const search = document.getElementById("search");
+    const count = document.getElementById("count");
+
+    function render() {
+      head.replaceChildren();
+      body.replaceChildren();
+
+      COLUMNS.forEach(column => {
+        const th = document.createElement("th");
+        th.textContent = column.label;
+        head.appendChild(th);
+      });
+
+      const query = search.value.trim().toLocaleLowerCase("vi");
+      const visible = STUDENTS.filter(student =>
+        String(student.stt ?? "").includes(query) ||
+        student.name.toLocaleLowerCase("vi").includes(query)
+      );
+
+      visible.forEach(student => {
+        const tr = document.createElement("tr");
+        if (student.unlisted) tr.classList.add("unlisted");
+
+        COLUMNS.forEach(column => {
+          const td = document.createElement("td");
+          const value = column.type === "stt"
+            ? student.stt
+            : column.type === "name"
+              ? student.name
+              : (student.scores?.[column.key] ?? null);
+
+          if (column.type === "stt") td.classList.add("stt");
+          else if (column.type === "name") td.classList.add("name");
+          else td.classList.add("score");
+
+          if (column.className) td.classList.add(column.className);
+          if (value === null || value === undefined || value === "") {
+            td.classList.add("empty");
+            td.textContent = "";
+          } else {
+            td.textContent = value;
+          }
+          tr.appendChild(td);
+        });
+        body.appendChild(tr);
+      });
+
+      count.textContent = `${visible.length} / ${STUDENTS.length} dòng`;
+    }
+
+    search.addEventListener("input", render);
+    render();
+  </script>
+</body>
+</html>
